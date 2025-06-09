@@ -215,21 +215,142 @@
         }
 
         .error-text {
-            position: absolute;
+            position: fixed;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 72px;
+            color: #ff0000;
+            font-weight: bold;
+            opacity: 0;
+            animation: errorFlash 2s ease-in-out;
+            z-index: 10000;
+            text-shadow: 0 0 20px #ff0000;
+            background: rgba(0,0,0,0.9);
+            padding: 20px 40px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        @keyframes errorFlash {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-100px) scale(0.5); }
+            20% { opacity: 1; transform: translateX(-50%) translateY(50px) scale(1.2); }
+            80% { opacity: 1; transform: translateX(-50%) translateY(50px) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-100px) scale(0.8); }
+        }
+
+        .system-breach {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,0,0,0.1);
+            z-index: 9999;
+            opacity: 0;
+            animation: systemBreach 3s ease-in-out;
+        }
+
+        @keyframes systemBreach {
+            0% { opacity: 0; }
+            10% { opacity: 1; background: rgba(255,0,0,0.3); }
+            20% { opacity: 0; }
+            30% { opacity: 1; background: rgba(255,0,0,0.2); }
+            40% { opacity: 0; }
+            50% { opacity: 1; background: rgba(255,0,0,0.4); }
+            100% { opacity: 0; }
+        }
+
+        .reality-crack {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            background: linear-gradient(45deg, transparent 49%, #ff0000 49.5%, #ff0000 50.5%, transparent 51%);
+            z-index: 9998;
+            opacity: 0;
+            animation: realityCrack 1.5s ease-in-out;
+        }
+
+        @keyframes realityCrack {
+            0% { opacity: 0; transform: scaleX(0); }
+            50% { opacity: 1; transform: scaleX(1); }
+            100% { opacity: 0; transform: scaleX(1); }
+        }
+
+        .dimension-shift {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 96px;
+            color: #00ffff;
+            font-weight: bold;
+            opacity: 0;
+            z-index: 10001;
+            text-shadow: 0 0 30px #00ffff;
+            animation: dimensionShift 4s ease-in-out;
+            white-space: nowrap;
+        }
+
+        @keyframes dimensionShift {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-200px) rotateX(90deg); }
+            25% { opacity: 1; transform: translateX(-50%) translateY(100px) rotateX(0deg); }
+            75% { opacity: 1; transform: translateX(-50%) translateY(100px) rotateX(0deg); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-200px) rotateX(-90deg); }
+        }
+
+        .memory-extraction {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(255,255,0,0.1) 10px,
+                rgba(255,255,0,0.1) 20px
+            );
+            z-index: 9997;
+            opacity: 0;
+            animation: memoryExtraction 5s ease-in-out;
+        }
+
+        @keyframes memoryExtraction {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .final-warning {
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 48px;
-            color: #ff0000;
+            color: #ffd700;
             font-weight: bold;
             opacity: 0;
-            animation: errorFlash 0.5s ease-in-out;
+            z-index: 10002;
+            text-align: center;
+            background: rgba(0,0,0,0.95);
+            padding: 40px;
+            border: 3px solid #ffd700;
+            border-radius: 20px;
+            animation: finalWarning 6s ease-in-out;
+            box-shadow: 0 0 50px rgba(255,215,0,0.5);
         }
 
-        @keyframes errorFlash {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        @keyframes finalWarning {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            30% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
         }
 
         .shadow-figure {
@@ -294,7 +415,8 @@
     <div class="instructions">
         🔄 <strong>F5キー</strong> - 世界をリセット<br>
         👁️ 変化を観察し、真実を見つけ出してください<br>
-        💭 記憶の欠片を集めましょう
+        💭 記憶の欠片を集めましょう<br>
+        <button id="resetBtn" onclick="resetGame()" style="margin-top: 10px; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 ゲームをリセット</button>
     </div>
 
     <script>
@@ -410,6 +532,16 @@
 
             setTimeout(() => {
                 document.body.classList.add('glitch-effect');
+                
+                // 大きなエラーメッセージを上部に表示
+                const errorText = document.createElement('div');
+                errorText.className = 'error-text';
+                errorText.textContent = 'SYSTEM ERROR';
+                document.body.appendChild(errorText);
+                
+                setTimeout(() => {
+                    errorText.remove();
+                }, 2000);
             }, 4000);
         }
 
@@ -417,23 +549,38 @@
         function loop4Experience() {
             document.getElementById('room').classList.add('red-tint');
             
+            // システム侵害演出
+            const breach = document.createElement('div');
+            breach.className = 'system-breach';
+            document.body.appendChild(breach);
+            
             setTimeout(() => {
-                const errorText = document.createElement('div');
-                errorText.className = 'error-text';
-                errorText.textContent = 'ERROR';
-                document.body.appendChild(errorText);
+                // 現実にひび割れ演出
+                const crack = document.createElement('div');
+                crack.className = 'reality-crack';
+                document.body.appendChild(crack);
                 
                 setTimeout(() => {
-                    errorText.remove();
-                }, 1000);
+                    crack.remove();
+                }, 1500);
                 
                 unlockMemory(2, '何かがこの空間を侵食している...');
             }, 1500);
+            
+            setTimeout(() => {
+                breach.remove();
+            }, 3000);
         }
 
         // ループ5: 影の人影が現れる
         function loop5Experience() {
             document.getElementById('room').classList.add('blue-tint');
+            
+            // 次元シフト演出
+            const dimensionText = document.createElement('div');
+            dimensionText.className = 'dimension-shift';
+            dimensionText.textContent = 'DIMENSION SHIFT';
+            document.body.appendChild(dimensionText);
             
             setTimeout(() => {
                 const shadow = document.createElement('div');
@@ -441,11 +588,20 @@
                 document.getElementById('room').appendChild(shadow);
                 
                 unlockMemory(3, '誰かがあなたを見ている...');
-            }, 3000);
+            }, 2000);
+            
+            setTimeout(() => {
+                dimensionText.remove();
+            }, 4000);
         }
 
         // ループ6: 真実の一部が明かされる
         function loop6Experience() {
+            // 記憶抽出演出
+            const extraction = document.createElement('div');
+            extraction.className = 'memory-extraction';
+            document.body.appendChild(extraction);
+            
             setTimeout(() => {
                 document.getElementById('papers').innerHTML = `
                     <span style="color: red;">機密文書</span><br>
@@ -457,6 +613,10 @@
                 
                 unlockMemory(4, 'あなたは実験の被験者だった...');
             }, 2000);
+            
+            setTimeout(() => {
+                extraction.remove();
+            }, 5000);
         }
 
         // ループ7: より詳細な真実
@@ -481,6 +641,18 @@
 
         // ループ8: 最終的な真実とエンディング
         function loop8Experience() {
+            // 最終警告演出
+            const finalWarning = document.createElement('div');
+            finalWarning.className = 'final-warning';
+            finalWarning.innerHTML = `
+                ⚠️ CRITICAL ALERT ⚠️<br>
+                <div style="font-size: 24px; margin-top: 20px;">
+                被験者覚醒検出<br>
+                実験強制終了中...
+                </div>
+            `;
+            document.body.appendChild(finalWarning);
+            
             setTimeout(() => {
                 document.getElementById('papers').innerHTML = `
                     <span style="color: gold;">極秘プロジェクト</span><br>
@@ -501,10 +673,11 @@
             }, 2000);
 
             setTimeout(() => {
+                finalWarning.remove();
                 if (gameData.memoriesUnlocked.length >= 7) {
                     showFinalEnding();
                 }
-            }, 5000);
+            }, 6000);
         }
 
         // 無限ループ（エンディング後）
@@ -557,6 +730,14 @@
         function generateRandomName() {
             const names = ['田中', '佐藤', '鈴木', '高橋', '伊藤'];
             return names[gameData.loopCount % names.length];
+        }
+
+        // ゲームリセット機能
+        function resetGame() {
+            if (confirm('本当にゲームをリセットしますか？\n全ての進行状況が失われます。')) {
+                sessionStorage.removeItem(GAME_DATA_KEY);
+                location.reload();
+            }
         }
 
         // F5キーでのリロードを検知（実際のリロードは阻止しない）

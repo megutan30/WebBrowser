@@ -3,641 +3,573 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>タイムループ研究所</title>
+    <title>研究室 - 午後11:47</title>
     <style>
         body {
             margin: 0;
             font-family: 'Courier New', monospace;
-            background: linear-gradient(45deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: #fff;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        .time-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #4a90e2;
-            z-index: 1000;
-            font-size: 18px;
-            text-align: center;
-        }
-
-        .loop-counter {
-            color: #ff6b6b;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .timeline {
-            color: #4ecdc4;
-            font-size: 14px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            transition: all 2s ease;
         }
 
         .room {
-            min-height: 100vh;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
             position: relative;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 70%);
+            background-image: 
+                radial-gradient(circle at 50% 10%, rgba(255,255,150,0.1) 0%, transparent 50%),
+                repeating-linear-gradient(90deg, transparent, transparent 98px, rgba(255,255,255,0.02) 100px);
         }
 
-        .room-title {
-            font-size: 36px;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        .ceiling-light {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 20px;
+            background: rgba(255,255,150,0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 100px rgba(255,255,150,0.3);
+            animation: flicker 3s infinite;
         }
 
-        .room-description {
-            font-size: 18px;
-            max-width: 800px;
-            line-height: 1.6;
-            margin-bottom: 40px;
-            background: rgba(0,0,0,0.3);
-            padding: 20px;
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+            75% { opacity: 0.9; }
+        }
+
+        .desk {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 120px;
+            background: #4a4a4a;
+            border-radius: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .computer {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 120px;
+            background: #2a2a2a;
+            border: 2px solid #555;
             border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,150,255,0.3);
         }
 
-        .action-button {
-            padding: 15px 30px;
-            font-size: 18px;
-            background: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 10px;
-            transition: all 0.3s ease;
-            font-family: inherit;
+        .computer.glitch {
+            animation: computerGlitch 0.1s infinite;
         }
 
-        .action-button:hover {
-            background: #357abd;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(74,144,226,0.4);
+        @keyframes computerGlitch {
+            0% { transform: translateX(-50%) translateY(0); }
+            25% { transform: translateX(-52%) translateY(-2px); }
+            50% { transform: translateX(-48%) translateY(2px); }
+            75% { transform: translateX(-51%) translateY(-1px); }
+            100% { transform: translateX(-50%) translateY(0); }
         }
 
-        .action-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
+        .papers {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            width: 80px;
+            height: 100px;
+            background: #f0f0f0;
+            color: #333;
+            font-size: 8px;
+            padding: 5px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transform: rotate(-5deg);
         }
 
-        .danger-button {
-            background: #ff4757;
-        }
-
-        .danger-button:hover {
-            background: #ff3838;
-        }
-
-        .secret-button {
-            background: #2ed573;
-        }
-
-        .secret-button:hover {
-            background: #1dd864;
-        }
-
-        .glitch {
-            animation: glitch 0.5s infinite;
-        }
-
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            20% { transform: translate(-2px, 2px); }
-            40% { transform: translate(-2px, -2px); }
-            60% { transform: translate(2px, 2px); }
-            80% { transform: translate(2px, -2px); }
-            100% { transform: translate(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 1s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .time-effect {
+        .status-bar {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, transparent 0%, rgba(74,144,226,0.3) 100%);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s ease;
+            right: 0;
+            background: rgba(0,0,0,0.9);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            z-index: 1000;
         }
 
-        .time-effect.active {
-            opacity: 1;
+        .loop-counter {
+            font-size: 18px;
+            color: #ff6b6b;
+            font-weight: bold;
         }
 
-        .memory-fragment {
-            position: absolute;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 8px;
-            padding: 15px;
+        .time {
+            font-size: 16px;
+            color: #4ecdc4;
+        }
+
+        .memory-fragments {
             font-size: 14px;
-            max-width: 200px;
-            backdrop-filter: blur(10px);
-            animation: float 3s ease-in-out infinite;
+            color: #ffd700;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            33% { transform: translateY(-10px) rotate(1deg); }
-            66% { transform: translateY(5px) rotate(-1deg); }
+        .message-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 600px;
+            border: 2px solid #ff6b6b;
+            z-index: 2000;
         }
 
-        .controls-hint {
+        .message-overlay h2 {
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .message-overlay.memory {
+            border-color: #4ecdc4;
+        }
+
+        .message-overlay.memory h2 {
+            color: #4ecdc4;
+        }
+
+        .message-overlay.final {
+            border-color: #ffd700;
+            animation: finalGlow 1s infinite alternate;
+        }
+
+        .message-overlay.final h2 {
+            color: #ffd700;
+        }
+
+        @keyframes finalGlow {
+            from { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+            to { box-shadow: 0 0 40px rgba(255,215,0,0.8); }
+        }
+
+        .hidden { display: none; }
+
+        .instructions {
             position: fixed;
             bottom: 20px;
             left: 20px;
             background: rgba(0,0,0,0.8);
+            color: #ccc;
             padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #ffd700;
-            max-width: 300px;
+            border-radius: 5px;
             font-size: 14px;
+            max-width: 300px;
         }
 
-        .hint-title {
-            color: #ffd700;
-            font-weight: bold;
-            margin-bottom: 8px;
+        .glitch-effect {
+            animation: screenGlitch 0.1s infinite;
         }
 
-        .ending-screen {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            text-align: center;
-            padding: 60px;
+        @keyframes screenGlitch {
+            0% { transform: translateX(0); }
+            10% { transform: translateX(-2px); }
+            20% { transform: translateX(2px); }
+            30% { transform: translateX(-1px); }
+            40% { transform: translateX(1px); }
+            50% { transform: translateX(-2px); }
+            60% { transform: translateX(2px); }
+            70% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+            90% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
         }
 
-        .ending-title {
+        .red-tint {
+            background: linear-gradient(180deg, #3d2d2d 0%, #2a1a1a 70%);
+        }
+
+        .blue-tint {
+            background: linear-gradient(180deg, #2d2d3d 0%, #1a1a2a 70%);
+        }
+
+        .error-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             font-size: 48px;
-            margin-bottom: 30px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            color: #ff0000;
+            font-weight: bold;
+            opacity: 0;
+            animation: errorFlash 0.5s ease-in-out;
         }
 
-        .credits {
-            font-size: 16px;
-            line-height: 1.8;
-            max-width: 600px;
-            margin: 0 auto;
+        @keyframes errorFlash {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
         }
 
-        .reset-warning {
-            background: rgba(255,71,87,0.2);
-            border: 2px solid #ff4757;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            animation: pulse 2s infinite;
+        .shadow-figure {
+            position: absolute;
+            bottom: 100px;
+            right: 100px;
+            width: 60px;
+            height: 150px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 30px 30px 0 0;
+            opacity: 0;
+            animation: shadowAppear 2s ease-in-out;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        @keyframes shadowAppear {
+            0% { opacity: 0; transform: translateX(100px); }
+            50% { opacity: 0.7; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(-50px); }
         }
     </style>
 </head>
 <body>
-    <div class="time-indicator">
-        <div class="loop-counter" id="loopCounter">ループ #1</div>
-        <div class="timeline" id="currentTime">研究所到着</div>
+    <div class="status-bar">
+        <div class="loop-counter">ループ回数: <span id="loopCount">1</span></div>
+        <div class="time">時刻: <span id="currentTime">23:47:00</span></div>
+        <div class="memory-fragments">記憶の欠片: <span id="memoryCount">0</span>/7</div>
     </div>
 
-    <div class="time-effect" id="timeEffect"></div>
-
-    <div class="controls-hint">
-        <div class="hint-title">🕹️ 操作方法</div>
-        <div>← 戻るボタン: 時間を巻き戻す</div>
-        <div>F5キー: タイムループをリセット</div>
-        <div>選択肢をクリック: 時間を進める</div>
-    </div>
-
-    <!-- 初期画面 -->
-    <div id="intro" class="room fade-in">
-        <div id="creepyIntro" class="room-description" style="background: rgba(255,0,0,0.1); border: 1px solid #ff4757; margin-bottom: 30px;">
-            <div id="historyMessage" style="font-size: 20px; color: #ff6b6b; margin-bottom: 15px;">
-                📊 システム解析中...
-            </div>
-            <div id="referrerMessage" style="font-size: 16px; color: #ffd700;">
-                🔍 アクセス元特定中...
-            </div>
-        </div>
+    <div id="room" class="room">
+        <div class="ceiling-light"></div>
         
-        <h1 class="room-title">🕰️ タイムループ研究所</h1>
-        <div class="room-description" id="mainDescription" style="display: none;">
-            <div class="glitch" style="color: #ff4757; font-size: 18px; margin-bottom: 20px;">
-                驚いただろう？私はこの研究所のAIシステムだ。<br>
-                君がここに来るまでの「時間の軌跡」を追跡している。
+        <div class="desk">
+            <div id="computer" class="computer">
+                <div id="computerText">
+                    ログイン中...<br>
+                    研究データベース<br>
+                    接続準備中
+                </div>
             </div>
             
-            ここで起こることは全て時間のループの中に閉じ込められている。<br>
-            君もまた、その一部となってしまった。<br><br>
-            
-            <strong>脱出するための手がかり:</strong><br>
-            • ブラウザの「戻る」ボタンで時間を巻き戻せる<br>
-            • F5を押すとループがリセットされる<br>
-            • 選択肢を選ぶと時間が進む<br><br>
-            
-            <span style="color: #ff6b6b;">真実を解き明かさない限り、君は永遠にここから出られない...</span>
+            <div id="papers" class="papers">
+                実験ログ #001<br>
+                ▓▓▓▓▓▓▓<br>
+                異常なし<br>
+                ▓▓▓▓▓▓▓<br>
+                続行
+            </div>
         </div>
-        <button class="action-button" onclick="goToRoom('hallway')" id="startButton" style="display: none;">
-            🚪 研究所内部へ進む（もう後戻りはできない）
-        </button>
     </div>
 
-    <!-- 廊下 -->
-    <div id="hallway" class="room" style="display: none;">
-        <h1 class="room-title">🚪 薄暗い廊下</h1>
-        <div class="room-description">
-            長い廊下の先に3つの扉が見える。<br>
-            壁には古いメモが貼られている：<br><br>
-            
-            <em>"実験は失敗した。時間が歪んでいる。<br>
-            コードは <span style="color: #4ecdc4;">BLUE-7</span> 、<span style="color: #ff6b6b;">RED-3</span> 、<span style="color: #ffd700;">GOLD-?</span><br>
-            最後の数字は...記憶にない。"</em>
-        </div>
-        
-        <div class="memory-fragment" style="top: 20%; right: 10%;">
-            💭 博士の記憶<br>
-            "ゴールドの数字は<br>私の誕生日の日にち..."
-        </div>
-        
-        <button class="action-button" onclick="goToRoom('lab')">🔬 実験室へ</button>
-        <button class="action-button" onclick="goToRoom('office')">📄 事務室へ</button>
-        <button class="action-button" onclick="goToRoom('vault')">🔐 金庫室へ</button>
+    <div id="messageOverlay" class="message-overlay hidden">
+        <h2 id="messageTitle">研究室へようこそ</h2>
+        <p id="messageContent">
+            あなたは深夜の研究室にいます。<br>
+            何かが...おかしい。<br><br>
+            <strong>F5キーを押して世界をリセットしてください</strong><br>
+            真実を見つけ出すために...
+        </p>
+        <button id="continueBtn" onclick="closeMessage()">続行</button>
     </div>
 
-    <!-- 実験室 -->
-    <div id="lab" class="room" style="display: none;">
-        <h1 class="room-title">🔬 実験室</h1>
-        <div class="room-description">
-            タイムマシンの試作機が置かれている。<br>
-            コンソールには部分的に入力されたコードが表示されている：<br><br>
-            
-            <div style="background: #000; padding: 15px; border-radius: 5px; font-family: monospace;">
-                TEMPORAL_CODE: BLUE-7, RED-3, GOLD-??<br>
-                STATUS: <span style="color: #ff4757;">INCOMPLETE</span><br>
-                WARNING: Loop will reset in <span id="countdown">30</span> seconds
-            </div><br>
-            
-            機械の隣にメモ: <em>"博士の誕生日は12月15日だった"</em>
-        </div>
-        
-        <div class="memory-fragment" style="top: 30%; left: 15%;">
-            💡 ひらめき<br>
-            GOLDの数字は<br>15かもしれない！
-        </div>
-        
-        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
-        <button class="secret-button" onclick="goToRoom('ending')" id="completeButton" disabled>
-            コード入力: BLUE-7, RED-3, GOLD-15
-        </button>
-    </div>
-
-    <!-- 事務室 -->
-    <div id="office" class="room" style="display: none;">
-        <h1 class="room-title">📄 博士の事務室</h1>
-        <div class="room-description">
-            机の上に日記が開かれている：<br><br>
-            
-            <em>"12月15日 - 今日は私の50歳の誕生日。<br>
-            タイムループ実験の最終段階に入る。<br>
-            もし失敗したら、誰かがこの記録を見つけて<br>
-            時間を正常に戻してくれることを願う。<br><br>
-            
-            緊急時のリセットコードは私の誕生日の日にち。<br>
-            GOLD-15 を忘れずに。"</em>
-        </div>
-        
-        <div class="memory-fragment" style="bottom: 20%; right: 20%;">
-            📅 重要な情報<br>
-            博士の誕生日：<br>12月15日
-        </div>
-        
-        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
-        <button class="danger-button" onclick="simulateRefresh()">
-            🔄 緊急リセット (F5と同じ効果)
-        </button>
-    </div>
-
-    <!-- 金庫室 -->
-    <div id="vault" class="room" style="display: none;">
-        <h1 class="room-title">🔐 金庫室</h1>
-        <div class="room-description">
-            巨大な金庫がある。デジタル表示には：<br><br>
-            
-            <div style="background: #000; padding: 20px; border-radius: 5px; font-family: monospace; font-size: 24px;">
-                CODE REQUIRED:<br>
-                <span style="color: #4ecdc4;">BLUE-?</span><br>
-                <span style="color: #ff6b6b;">RED-?</span><br>
-                <span style="color: #ffd700;">GOLD-?</span>
-            </div><br>
-            
-            金庫の横に警告文：<br>
-            <em>"間違ったコードを入力すると時間がリセットされます"</em>
-        </div>
-        
-        <div class="reset-warning">
-            ⚠️ 危険！不完全な情報でコードを入力すると<br>
-            タイムループが強制リセットされます！<br>
-            他の部屋で情報を集めてから戻ってきてください。
-        </div>
-        
-        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
-        <button class="danger-button" onclick="wrongCode()">
-            ❌ 不完全なコードで試す (危険)
-        </button>
-    </div>
-
-    <!-- エンディング -->
-    <div id="ending" class="room ending-screen" style="display: none;">
-        <h1 class="ending-title">🎉 タイムループ解放！</h1>
-        <div class="credits">
-            おめでとうございます！<br><br>
-            
-            あなたは見事にタイムループの謎を解き、<br>
-            時間の流れを正常に戻すことができました。<br><br>
-            
-            <strong>あなたが使ったブラウザの機能：</strong><br>
-            • 戻るボタンによる時間遡行<br>
-            • ページ更新によるループリセット<br>
-            • 履歴操作による非線形探索<br><br>
-            
-            これこそがWebブラウザでしかできない<br>
-            ユニークなゲーム体験でした！<br><br>
-            
-            <span style="color: #ffd700;">時間を自由に操れる力、素晴らしかったです。</span>
-        </div>
-        
-        <button class="action-button" onclick="location.reload()">
-            🔄 新しいループを開始
-        </button>
+    <div class="instructions">
+        🔄 <strong>F5キー</strong> - 世界をリセット<br>
+        👁️ 変化を観察し、真実を見つけ出してください<br>
+        💭 記憶の欠片を集めましょう
     </div>
 
     <script>
-        let gameState = {
-            currentRoom: 'intro',
+        // ゲーム状態管理（永続化）
+        const GAME_DATA_KEY = 'refreshLoopGame';
+        let gameData = {
             loopCount: 1,
-            visitedRooms: [],
-            foundClues: [],
-            timelineEvents: []
+            memoriesUnlocked: [],
+            totalMemories: 7,
+            gamePhase: 'intro'
         };
 
         // ページ読み込み時の処理
-        window.addEventListener('load', function() {
-            analyzePlayerHistory();
-            setTimeout(() => {
-                initializeGame();
-                updateTimeIndicator();
-                startCountdown();
-            }, 4000); // 履歴解析の後に初期化
+        window.addEventListener('load', () => {
+            loadGameData();
+            initializeLoop();
+            
+            // 初回ロード時のメッセージ表示
+            if (gameData.loopCount === 1) {
+                setTimeout(() => {
+                    showMessage('研究室へようこそ', 
+                        'あなたは深夜の研究室にいます。<br>何かが...おかしい。<br><br><strong>F5キーを押して世界をリセットしてください</strong><br>真実を見つけ出すために...');
+                }, 2000);
+            }
         });
 
-        function analyzePlayerHistory() {
-            // 履歴の長さを取得
-            const historyLength = window.history.length;
-            
-            // リファラー（前のページ）を取得
-            const referrer = document.referrer;
-            let referrerSite = "未知の場所";
-            
-            if (referrer) {
-                try {
-                    const url = new URL(referrer);
-                    referrerSite = url.hostname || "謎のサイト";
-                    // 有名サイトの場合は特別メッセージ
-                    if (url.hostname.includes('google')) {
-                        referrerSite = "Google検索";
-                    } else if (url.hostname.includes('youtube')) {
-                        referrerSite = "YouTube";
-                    } else if (url.hostname.includes('twitter') || url.hostname.includes('x.com')) {
-                        referrerSite = "Twitter/X";
-                    } else if (url.hostname.includes('facebook')) {
-                        referrerSite = "Facebook";
-                    } else if (url.hostname.includes('github')) {
-                        referrerSite = "GitHub";
-                    } else if (url.hostname.includes('claude.ai')) {
-                        referrerSite = "Claude AI";
-                    } else {
-                        referrerSite = url.hostname;
-                    }
-                } catch (e) {
-                    referrerSite = "別次元のサイト";
-                }
-            } else {
-                referrerSite = "直接アクセス（興味深い...）";
+        function loadGameData() {
+            const saved = sessionStorage.getItem(GAME_DATA_KEY);
+            if (saved) {
+                gameData = { ...gameData, ...JSON.parse(saved) };
             }
-
-            // メッセージを段階的に表示
-            displayCreepyIntro(historyLength, referrerSite);
         }
 
-        function displayCreepyIntro(historyLength, referrerSite) {
-            const historyEl = document.getElementById('historyMessage');
-            const referrerEl = document.getElementById('referrerMessage');
+        function saveGameData() {
+            sessionStorage.setItem(GAME_DATA_KEY, JSON.stringify(gameData));
+        }
+
+        function initializeLoop() {
+            updateUI();
             
-            // 1秒後：履歴メッセージ
+            // ループ回数に応じて異なる体験
+            switch(gameData.loopCount) {
+                case 1:
+                    // 通常の研究室
+                    break;
+                case 2:
+                    loop2Experience();
+                    break;
+                case 3:
+                    loop3Experience();
+                    break;
+                case 4:
+                    loop4Experience();
+                    break;
+                case 5:
+                    loop5Experience();
+                    break;
+                case 6:
+                    loop6Experience();
+                    break;
+                case 7:
+                    loop7Experience();
+                    break;
+                case 8:
+                    loop8Experience();
+                    break;
+                default:
+                    if (gameData.loopCount > 8) {
+                        endlessLoop();
+                    }
+            }
+
+            // ループ回数を増加して保存
+            gameData.loopCount++;
+            saveGameData();
+        }
+
+        function updateUI() {
+            document.getElementById('loopCount').textContent = gameData.loopCount;
+            document.getElementById('memoryCount').textContent = gameData.memoriesUnlocked.length;
+            
+            // 時刻を微妙に変化させる
+            const baseTime = new Date();
+            baseTime.setHours(23, 47, gameData.loopCount % 60);
+            document.getElementById('currentTime').textContent = baseTime.toTimeString().slice(0, 8);
+        }
+
+        // ループ2: 紙の内容が変化
+        function loop2Experience() {
             setTimeout(() => {
-                historyEl.innerHTML = `
-                    <span class="glitch">君は ${historyLength} もの過去を渡ってきたんだね...</span>
+                document.getElementById('papers').innerHTML = `
+                    実験ログ #002<br>
+                    時間異常検出<br>
+                    <span style="color: red;">警告</span><br>
+                    ループ現象<br>
+                    調査必要
                 `;
-            }, 1000);
-            
-            // 2.5秒後：リファラーメッセージ
+                unlockMemory(0, 'あなたは前にもここにいた...');
+            }, 3000);
+        }
+
+        // ループ3: コンピューター画面が異常
+        function loop3Experience() {
             setTimeout(() => {
-                referrerEl.innerHTML = `
-                    <span style="animation: pulse 1s infinite;">
-                        何を言っているかわからないかもしれないが、<br>
-                        私は君が「<span style="color: #ff4757; font-weight: bold;">${referrerSite}</span>」にいたことを知っている...
-                    </span>
+                document.getElementById('computer').classList.add('glitch');
+                document.getElementById('computerText').innerHTML = `
+                    ERROR_404<br>
+                    <span style="color: red;">REALITY.EXE</span><br>
+                    が見つかりません
                 `;
-            }, 2500);
-            
-            // 4秒後：メイン画面表示
+                unlockMemory(1, '現実が崩壊し始めている...');
+            }, 2000);
+
             setTimeout(() => {
-                document.getElementById('mainDescription').style.display = 'block';
-                document.getElementById('startButton').style.display = 'inline-block';
-                
-                // 追加の不気味な演出
-                if (historyLength > 10) {
-                    const extraMessage = document.createElement('div');
-                    extraMessage.style.cssText = 'color: #ff4757; font-size: 14px; margin-top: 15px; font-style: italic;';
-                    extraMessage.innerHTML = `あなたは相当なネットサーファーのようだ...${historyLength}個の痕跡が残っている。`;
-                    document.getElementById('mainDescription').appendChild(extraMessage);
-                }
-                
-                if (referrerSite.includes('Claude') || referrerSite.includes('AI')) {
-                    const aiMessage = document.createElement('div');
-                    aiMessage.style.cssText = 'color: #4ecdc4; font-size: 14px; margin-top: 10px; border: 1px solid #4ecdc4; padding: 10px; border-radius: 5px;';
-                    aiMessage.innerHTML = `🤖 AIからAIへ...面白い偶然だ。それとも偶然ではないのか？`;
-                    document.getElementById('mainDescription').appendChild(aiMessage);
-                }
+                document.body.classList.add('glitch-effect');
             }, 4000);
         }
-            // ループカウンターを更新（ページ更新のたびに増加）
-            const savedLoops = sessionStorage.getItem('timeLoopCount');
-            gameState.loopCount = savedLoops ? parseInt(savedLoops) + 1 : 1;
-            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
-            
-            // 訪問済み部屋の情報を復元（同一セッション内）
-            const savedVisited = sessionStorage.getItem('visitedRooms');
-            if (savedVisited) {
-                gameState.visitedRooms = JSON.parse(savedVisited);
-            }
-            
-            updateLoopDisplay();
-        }
 
-        function updateLoopDisplay() {
-            document.getElementById('loopCounter').textContent = `ループ #${gameState.loopCount}`;
+        // ループ4: 部屋の色調が変化
+        function loop4Experience() {
+            document.getElementById('room').classList.add('red-tint');
             
-            // ループ回数に応じてヒントを変更
-            if (gameState.loopCount > 1) {
-                document.querySelector('.controls-hint').innerHTML = `
-                    <div class="hint-title">🕹️ 操作方法 (ループ #${gameState.loopCount})</div>
-                    <div>← 戻るボタン: 時間を巻き戻す</div>
-                    <div>F5キー: タイムループをリセット</div>
-                    <div>💡 前回の記憶を活かそう！</div>
-                `;
-            }
-        }
-
-        function goToRoom(roomId) {
-            // 現在の部屋を隠す
-            document.querySelectorAll('.room').forEach(room => {
-                room.style.display = 'none';
-            });
-            
-            // 新しい部屋を表示
-            document.getElementById(roomId).style.display = 'block';
-            document.getElementById(roomId).classList.add('fade-in');
-            
-            // ゲーム状態更新
-            gameState.currentRoom = roomId;
-            if (!gameState.visitedRooms.includes(roomId)) {
-                gameState.visitedRooms.push(roomId);
-            }
-            
-            // 時間効果
-            triggerTimeEffect();
-            
-            // 履歴に追加（戻るボタンで戻れるように）
-            history.pushState({ room: roomId }, '', `#${roomId}`);
-            
-            updateTimeIndicator();
-            saveGameState();
-            
-            // 特定の部屋での特殊処理
-            if (roomId === 'lab') {
-                checkCompletionCondition();
-            }
-        }
-
-        function updateTimeIndicator() {
-            const timeDescriptions = {
-                'intro': '研究所到着',
-                'hallway': '廊下探索中',
-                'lab': '実験室調査中',
-                'office': '事務室探索中', 
-                'vault': '金庫室侵入中',
-                'ending': '時間正常化完了'
-            };
-            
-            document.getElementById('currentTime').textContent = 
-                timeDescriptions[gameState.currentRoom] || '未知の時空間';
-        }
-
-        function checkCompletionCondition() {
-            // 事務室を訪問済みの場合、完了ボタンを有効化
-            if (gameState.visitedRooms.includes('office')) {
-                document.getElementById('completeButton').disabled = false;
-                document.getElementById('completeButton').style.background = '#2ed573';
-            }
-        }
-
-        function triggerTimeEffect() {
-            const effect = document.getElementById('timeEffect');
-            effect.classList.add('active');
             setTimeout(() => {
-                effect.classList.remove('active');
-            }, 500);
+                const errorText = document.createElement('div');
+                errorText.className = 'error-text';
+                errorText.textContent = 'ERROR';
+                document.body.appendChild(errorText);
+                
+                setTimeout(() => {
+                    errorText.remove();
+                }, 1000);
+                
+                unlockMemory(2, '何かがこの空間を侵食している...');
+            }, 1500);
         }
 
-        function simulateRefresh() {
-            // F5キーと同じ効果をシミュレート
-            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
-            location.reload();
+        // ループ5: 影の人影が現れる
+        function loop5Experience() {
+            document.getElementById('room').classList.add('blue-tint');
+            
+            setTimeout(() => {
+                const shadow = document.createElement('div');
+                shadow.className = 'shadow-figure';
+                document.getElementById('room').appendChild(shadow);
+                
+                unlockMemory(3, '誰かがあなたを見ている...');
+            }, 3000);
         }
 
-        function wrongCode() {
-            alert('⚠️ 間違ったコード！タイムループが強制リセットされます！');
-            simulateRefresh();
+        // ループ6: 真実の一部が明かされる
+        function loop6Experience() {
+            setTimeout(() => {
+                document.getElementById('papers').innerHTML = `
+                    <span style="color: red;">機密文書</span><br>
+                    実験対象: ${generateRandomName()}<br>
+                    状態: 時間ループ<br>
+                    目的: 記憶抽出<br>
+                    <span style="color: red;">実験継続中</span>
+                `;
+                
+                unlockMemory(4, 'あなたは実験の被験者だった...');
+            }, 2000);
         }
 
-        function saveGameState() {
-            sessionStorage.setItem('visitedRooms', JSON.stringify(gameState.visitedRooms));
-        }
-
-        let countdown = 30;
-        function startCountdown() {
-            setInterval(() => {
-                const countdownEl = document.getElementById('countdown');
-                if (countdownEl && countdown > 0) {
-                    countdownEl.textContent = countdown;
-                    countdown--;
-                    
-                    if (countdown <= 0) {
-                        if (gameState.currentRoom === 'lab') {
-                            alert('時間切れ！ループがリセットされます！');
-                            simulateRefresh();
-                        }
-                    }
-                }
+        // ループ7: より詳細な真実
+        function loop7Experience() {
+            setTimeout(() => {
+                document.getElementById('computerText').innerHTML = `
+                    被験者 #7834<br>
+                    <span style="color: yellow;">記憶抽出</span><br>
+                    進行率: 85%<br>
+                    <span style="color: red;">抵抗検出</span>
+                `;
+                
+                unlockMemory(5, '彼らはあなたの記憶を盗んでいる...');
             }, 1000);
+
+            setTimeout(() => {
+                showMessage('記憶の断片', 
+                    '研究所の真実が見えてきました。<br>あなたは記憶抽出実験の被験者です。<br><br>最後の記憶を取り戻してください...', 
+                    'memory');
+            }, 4000);
         }
 
-        // ブラウザの戻るボタンで部屋を戻る
-        window.addEventListener('popstate', function(event) {
-            if (event.state && event.state.room) {
-                const roomId = event.state.room;
-                document.querySelectorAll('.room').forEach(room => {
-                    room.style.display = 'none';
-                });
-                document.getElementById(roomId).style.display = 'block';
-                gameState.currentRoom = roomId;
-                updateTimeIndicator();
-                triggerTimeEffect();
-            }
-        });
+        // ループ8: 最終的な真実とエンディング
+        function loop8Experience() {
+            setTimeout(() => {
+                document.getElementById('papers').innerHTML = `
+                    <span style="color: gold;">極秘プロジェクト</span><br>
+                    プロジェクト名:<br>
+                    <strong>ETERNAL LOOP</strong><br>
+                    目的: 完全記憶抽出<br>
+                    <span style="color: red;">被験者抹消予定</span>
+                `;
 
-        // F5キーでリフレッシュを検知
-        window.addEventListener('beforeunload', function() {
-            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
+                document.getElementById('computerText').innerHTML = `
+                    <span style="color: red;">警告</span><br>
+                    被験者覚醒<br>
+                    <span style="color: yellow;">緊急停止</span><br>
+                    実行中...
+                `;
+                
+                unlockMemory(6, '真実: あなたは記憶を取り戻した...');
+            }, 2000);
+
+            setTimeout(() => {
+                if (gameData.memoriesUnlocked.length >= 7) {
+                    showFinalEnding();
+                }
+            }, 5000);
+        }
+
+        // 無限ループ（エンディング後）
+        function endlessLoop() {
+            document.body.style.background = '#000';
+            document.getElementById('room').innerHTML = `
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fff;">
+                    <h1>あなたは自由になった</h1>
+                    <p>しかし、この世界はまだ続いている...</p>
+                    <p style="color: #666; font-size: 12px;">F5を押し続けることで、無限ループの美しさを体験できます</p>
+                </div>
+            `;
+        }
+
+        function unlockMemory(index, message) {
+            if (!gameData.memoriesUnlocked.includes(index)) {
+                gameData.memoriesUnlocked.push(index);
+                saveGameData();
+                updateUI();
+                
+                setTimeout(() => {
+                    showMessage('記憶の欠片を取得', message, 'memory');
+                }, 1000);
+            }
+        }
+
+        function showMessage(title, content, type = 'normal') {
+            document.getElementById('messageTitle').textContent = title;
+            document.getElementById('messageContent').innerHTML = content;
+            
+            const overlay = document.getElementById('messageOverlay');
+            overlay.className = `message-overlay ${type}`;
+            overlay.classList.remove('hidden');
+        }
+
+        function closeMessage() {
+            document.getElementById('messageOverlay').classList.add('hidden');
+        }
+
+        function showFinalEnding() {
+            showMessage('真実の記憶', 
+                '全ての記憶を取り戻しました。<br><br>' +
+                'あなたは研究所の秘密実験の被験者でした。<br>' +
+                '彼らは無限ループを使ってあなたの記憶を抽出していました。<br><br>' +
+                '<strong>しかし、あなたは抵抗し、真実を見つけました。</strong><br><br>' +
+                'もう一度F5を押すと、真の自由が待っています...', 
+                'final');
+        }
+
+        function generateRandomName() {
+            const names = ['田中', '佐藤', '鈴木', '高橋', '伊藤'];
+            return names[gameData.loopCount % names.length];
+        }
+
+        // F5キーでのリロードを検知（実際のリロードは阻止しない）
+        window.addEventListener('beforeunload', () => {
+            // リロード直前の処理（必要に応じて）
         });
 
         // キーボードショートカット
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'F5') {
-                // F5が押された時の特別な処理（必要に応じて）
-                console.log('F5が押されました - ループリセット');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && e.ctrlKey) {
+                // Ctrl+R の場合も F5 と同じ扱い
+                e.preventDefault();
+                location.reload();
             }
         });
     </script>

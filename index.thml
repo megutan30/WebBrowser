@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タイムループ研究所</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .time-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #4a90e2;
+            z-index: 1000;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .loop-counter {
+            color: #ff6b6b;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .timeline {
+            color: #4ecdc4;
+            font-size: 14px;
+        }
+
+        .room {
+            min-height: 100vh;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .room-title {
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .room-description {
+            font-size: 18px;
+            max-width: 800px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .action-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .action-button:hover {
+            background: #357abd;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74,144,226,0.4);
+        }
+
+        .action-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .danger-button {
+            background: #ff4757;
+        }
+
+        .danger-button:hover {
+            background: #ff3838;
+        }
+
+        .secret-button {
+            background: #2ed573;
+        }
+
+        .secret-button:hover {
+            background: #1dd864;
+        }
+
+        .glitch {
+            animation: glitch 0.5s infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .time-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 0%, rgba(74,144,226,0.3) 100%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .time-effect.active {
+            opacity: 1;
+        }
+
+        .memory-fragment {
+            position: absolute;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 14px;
+            max-width: 200px;
+            backdrop-filter: blur(10px);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-10px) rotate(1deg); }
+            66% { transform: translateY(5px) rotate(-1deg); }
+        }
+
+        .controls-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            max-width: 300px;
+            font-size: 14px;
+        }
+
+        .hint-title {
+            color: #ffd700;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .ending-screen {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+            padding: 60px;
+        }
+
+        .ending-title {
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+        }
+
+        .credits {
+            font-size: 16px;
+            line-height: 1.8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .reset-warning {
+            background: rgba(255,71,87,0.2);
+            border: 2px solid #ff4757;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="time-indicator">
+        <div class="loop-counter" id="loopCounter">ループ #1</div>
+        <div class="timeline" id="currentTime">研究所到着</div>
+    </div>
+
+    <div class="time-effect" id="timeEffect"></div>
+
+    <div class="controls-hint">
+        <div class="hint-title">🕹️ 操作方法</div>
+        <div>← 戻るボタン: 時間を巻き戻す</div>
+        <div>F5キー: タイムループをリセット</div>
+        <div>選択肢をクリック: 時間を進める</div>
+    </div>
+
+    <!-- 初期画面 -->
+    <div id="intro" class="room fade-in">
+        <div id="creepyIntro" class="room-description" style="background: rgba(255,0,0,0.1); border: 1px solid #ff4757; margin-bottom: 30px;">
+            <div id="historyMessage" style="font-size: 20px; color: #ff6b6b; margin-bottom: 15px;">
+                📊 システム解析中...
+            </div>
+            <div id="referrerMessage" style="font-size: 16px; color: #ffd700;">
+                🔍 アクセス元特定中...
+            </div>
+        </div>
+        
+        <h1 class="room-title">🕰️ タイムループ研究所</h1>
+        <div class="room-description" id="mainDescription" style="display: none;">
+            <div class="glitch" style="color: #ff4757; font-size: 18px; margin-bottom: 20px;">
+                驚いただろう？私はこの研究所のAIシステムだ。<br>
+                君がここに来るまでの「時間の軌跡」を追跡している。
+            </div>
+            
+            ここで起こることは全て時間のループの中に閉じ込められている。<br>
+            君もまた、その一部となってしまった。<br><br>
+            
+            <strong>脱出するための手がかり:</strong><br>
+            • ブラウザの「戻る」ボタンで時間を巻き戻せる<br>
+            • F5を押すとループがリセットされる<br>
+            • 選択肢を選ぶと時間が進む<br><br>
+            
+            <span style="color: #ff6b6b;">真実を解き明かさない限り、君は永遠にここから出られない...</span>
+        </div>
+        <button class="action-button" onclick="goToRoom('hallway')" id="startButton" style="display: none;">
+            🚪 研究所内部へ進む（もう後戻りはできない）
+        </button>
+    </div>
+
+    <!-- 廊下 -->
+    <div id="hallway" class="room" style="display: none;">
+        <h1 class="room-title">🚪 薄暗い廊下</h1>
+        <div class="room-description">
+            長い廊下の先に3つの扉が見える。<br>
+            壁には古いメモが貼られている：<br><br>
+            
+            <em>"実験は失敗した。時間が歪んでいる。<br>
+            コードは <span style="color: #4ecdc4;">BLUE-7</span> 、<span style="color: #ff6b6b;">RED-3</span> 、<span style="color: #ffd700;">GOLD-?</span><br>
+            最後の数字は...記憶にない。"</em>
+        </div>
+        
+        <div class="memory-fragment" style="top: 20%; right: 10%;">
+            💭 博士の記憶<br>
+            "ゴールドの数字は<br>私の誕生日の日にち..."
+        </div>
+        
+        <button class="action-button" onclick="goToRoom('lab')">🔬 実験室へ</button>
+        <button class="action-button" onclick="goToRoom('office')">📄 事務室へ</button>
+        <button class="action-button" onclick="goToRoom('vault')">🔐 金庫室へ</button>
+    </div>
+
+    <!-- 実験室 -->
+    <div id="lab" class="room" style="display: none;">
+        <h1 class="room-title">🔬 実験室</h1>
+        <div class="room-description">
+            タイムマシンの試作機が置かれている。<br>
+            コンソールには部分的に入力されたコードが表示されている：<br><br>
+            
+            <div style="background: #000; padding: 15px; border-radius: 5px; font-family: monospace;">
+                TEMPORAL_CODE: BLUE-7, RED-3, GOLD-??<br>
+                STATUS: <span style="color: #ff4757;">INCOMPLETE</span><br>
+                WARNING: Loop will reset in <span id="countdown">30</span> seconds
+            </div><br>
+            
+            機械の隣にメモ: <em>"博士の誕生日は12月15日だった"</em>
+        </div>
+        
+        <div class="memory-fragment" style="top: 30%; left: 15%;">
+            💡 ひらめき<br>
+            GOLDの数字は<br>15かもしれない！
+        </div>
+        
+        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
+        <button class="secret-button" onclick="goToRoom('ending')" id="completeButton" disabled>
+            コード入力: BLUE-7, RED-3, GOLD-15
+        </button>
+    </div>
+
+    <!-- 事務室 -->
+    <div id="office" class="room" style="display: none;">
+        <h1 class="room-title">📄 博士の事務室</h1>
+        <div class="room-description">
+            机の上に日記が開かれている：<br><br>
+            
+            <em>"12月15日 - 今日は私の50歳の誕生日。<br>
+            タイムループ実験の最終段階に入る。<br>
+            もし失敗したら、誰かがこの記録を見つけて<br>
+            時間を正常に戻してくれることを願う。<br><br>
+            
+            緊急時のリセットコードは私の誕生日の日にち。<br>
+            GOLD-15 を忘れずに。"</em>
+        </div>
+        
+        <div class="memory-fragment" style="bottom: 20%; right: 20%;">
+            📅 重要な情報<br>
+            博士の誕生日：<br>12月15日
+        </div>
+        
+        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
+        <button class="danger-button" onclick="simulateRefresh()">
+            🔄 緊急リセット (F5と同じ効果)
+        </button>
+    </div>
+
+    <!-- 金庫室 -->
+    <div id="vault" class="room" style="display: none;">
+        <h1 class="room-title">🔐 金庫室</h1>
+        <div class="room-description">
+            巨大な金庫がある。デジタル表示には：<br><br>
+            
+            <div style="background: #000; padding: 20px; border-radius: 5px; font-family: monospace; font-size: 24px;">
+                CODE REQUIRED:<br>
+                <span style="color: #4ecdc4;">BLUE-?</span><br>
+                <span style="color: #ff6b6b;">RED-?</span><br>
+                <span style="color: #ffd700;">GOLD-?</span>
+            </div><br>
+            
+            金庫の横に警告文：<br>
+            <em>"間違ったコードを入力すると時間がリセットされます"</em>
+        </div>
+        
+        <div class="reset-warning">
+            ⚠️ 危険！不完全な情報でコードを入力すると<br>
+            タイムループが強制リセットされます！<br>
+            他の部屋で情報を集めてから戻ってきてください。
+        </div>
+        
+        <button class="action-button" onclick="goToRoom('hallway')">廊下に戻る</button>
+        <button class="danger-button" onclick="wrongCode()">
+            ❌ 不完全なコードで試す (危険)
+        </button>
+    </div>
+
+    <!-- エンディング -->
+    <div id="ending" class="room ending-screen" style="display: none;">
+        <h1 class="ending-title">🎉 タイムループ解放！</h1>
+        <div class="credits">
+            おめでとうございます！<br><br>
+            
+            あなたは見事にタイムループの謎を解き、<br>
+            時間の流れを正常に戻すことができました。<br><br>
+            
+            <strong>あなたが使ったブラウザの機能：</strong><br>
+            • 戻るボタンによる時間遡行<br>
+            • ページ更新によるループリセット<br>
+            • 履歴操作による非線形探索<br><br>
+            
+            これこそがWebブラウザでしかできない<br>
+            ユニークなゲーム体験でした！<br><br>
+            
+            <span style="color: #ffd700;">時間を自由に操れる力、素晴らしかったです。</span>
+        </div>
+        
+        <button class="action-button" onclick="location.reload()">
+            🔄 新しいループを開始
+        </button>
+    </div>
+
+    <script>
+        let gameState = {
+            currentRoom: 'intro',
+            loopCount: 1,
+            visitedRooms: [],
+            foundClues: [],
+            timelineEvents: []
+        };
+
+        // ページ読み込み時の処理
+        window.addEventListener('load', function() {
+            analyzePlayerHistory();
+            setTimeout(() => {
+                initializeGame();
+                updateTimeIndicator();
+                startCountdown();
+            }, 4000); // 履歴解析の後に初期化
+        });
+
+        function analyzePlayerHistory() {
+            // 履歴の長さを取得
+            const historyLength = window.history.length;
+            
+            // リファラー（前のページ）を取得
+            const referrer = document.referrer;
+            let referrerSite = "未知の場所";
+            
+            if (referrer) {
+                try {
+                    const url = new URL(referrer);
+                    referrerSite = url.hostname || "謎のサイト";
+                    // 有名サイトの場合は特別メッセージ
+                    if (url.hostname.includes('google')) {
+                        referrerSite = "Google検索";
+                    } else if (url.hostname.includes('youtube')) {
+                        referrerSite = "YouTube";
+                    } else if (url.hostname.includes('twitter') || url.hostname.includes('x.com')) {
+                        referrerSite = "Twitter/X";
+                    } else if (url.hostname.includes('facebook')) {
+                        referrerSite = "Facebook";
+                    } else if (url.hostname.includes('github')) {
+                        referrerSite = "GitHub";
+                    } else if (url.hostname.includes('claude.ai')) {
+                        referrerSite = "Claude AI";
+                    } else {
+                        referrerSite = url.hostname;
+                    }
+                } catch (e) {
+                    referrerSite = "別次元のサイト";
+                }
+            } else {
+                referrerSite = "直接アクセス（興味深い...）";
+            }
+
+            // メッセージを段階的に表示
+            displayCreepyIntro(historyLength, referrerSite);
+        }
+
+        function displayCreepyIntro(historyLength, referrerSite) {
+            const historyEl = document.getElementById('historyMessage');
+            const referrerEl = document.getElementById('referrerMessage');
+            
+            // 1秒後：履歴メッセージ
+            setTimeout(() => {
+                historyEl.innerHTML = `
+                    <span class="glitch">君は ${historyLength} もの過去を渡ってきたんだね...</span>
+                `;
+            }, 1000);
+            
+            // 2.5秒後：リファラーメッセージ
+            setTimeout(() => {
+                referrerEl.innerHTML = `
+                    <span style="animation: pulse 1s infinite;">
+                        何を言っているかわからないかもしれないが、<br>
+                        私は君が「<span style="color: #ff4757; font-weight: bold;">${referrerSite}</span>」にいたことを知っている...
+                    </span>
+                `;
+            }, 2500);
+            
+            // 4秒後：メイン画面表示
+            setTimeout(() => {
+                document.getElementById('mainDescription').style.display = 'block';
+                document.getElementById('startButton').style.display = 'inline-block';
+                
+                // 追加の不気味な演出
+                if (historyLength > 10) {
+                    const extraMessage = document.createElement('div');
+                    extraMessage.style.cssText = 'color: #ff4757; font-size: 14px; margin-top: 15px; font-style: italic;';
+                    extraMessage.innerHTML = `あなたは相当なネットサーファーのようだ...${historyLength}個の痕跡が残っている。`;
+                    document.getElementById('mainDescription').appendChild(extraMessage);
+                }
+                
+                if (referrerSite.includes('Claude') || referrerSite.includes('AI')) {
+                    const aiMessage = document.createElement('div');
+                    aiMessage.style.cssText = 'color: #4ecdc4; font-size: 14px; margin-top: 10px; border: 1px solid #4ecdc4; padding: 10px; border-radius: 5px;';
+                    aiMessage.innerHTML = `🤖 AIからAIへ...面白い偶然だ。それとも偶然ではないのか？`;
+                    document.getElementById('mainDescription').appendChild(aiMessage);
+                }
+            }, 4000);
+        }
+            // ループカウンターを更新（ページ更新のたびに増加）
+            const savedLoops = sessionStorage.getItem('timeLoopCount');
+            gameState.loopCount = savedLoops ? parseInt(savedLoops) + 1 : 1;
+            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
+            
+            // 訪問済み部屋の情報を復元（同一セッション内）
+            const savedVisited = sessionStorage.getItem('visitedRooms');
+            if (savedVisited) {
+                gameState.visitedRooms = JSON.parse(savedVisited);
+            }
+            
+            updateLoopDisplay();
+        }
+
+        function updateLoopDisplay() {
+            document.getElementById('loopCounter').textContent = `ループ #${gameState.loopCount}`;
+            
+            // ループ回数に応じてヒントを変更
+            if (gameState.loopCount > 1) {
+                document.querySelector('.controls-hint').innerHTML = `
+                    <div class="hint-title">🕹️ 操作方法 (ループ #${gameState.loopCount})</div>
+                    <div>← 戻るボタン: 時間を巻き戻す</div>
+                    <div>F5キー: タイムループをリセット</div>
+                    <div>💡 前回の記憶を活かそう！</div>
+                `;
+            }
+        }
+
+        function goToRoom(roomId) {
+            // 現在の部屋を隠す
+            document.querySelectorAll('.room').forEach(room => {
+                room.style.display = 'none';
+            });
+            
+            // 新しい部屋を表示
+            document.getElementById(roomId).style.display = 'block';
+            document.getElementById(roomId).classList.add('fade-in');
+            
+            // ゲーム状態更新
+            gameState.currentRoom = roomId;
+            if (!gameState.visitedRooms.includes(roomId)) {
+                gameState.visitedRooms.push(roomId);
+            }
+            
+            // 時間効果
+            triggerTimeEffect();
+            
+            // 履歴に追加（戻るボタンで戻れるように）
+            history.pushState({ room: roomId }, '', `#${roomId}`);
+            
+            updateTimeIndicator();
+            saveGameState();
+            
+            // 特定の部屋での特殊処理
+            if (roomId === 'lab') {
+                checkCompletionCondition();
+            }
+        }
+
+        function updateTimeIndicator() {
+            const timeDescriptions = {
+                'intro': '研究所到着',
+                'hallway': '廊下探索中',
+                'lab': '実験室調査中',
+                'office': '事務室探索中', 
+                'vault': '金庫室侵入中',
+                'ending': '時間正常化完了'
+            };
+            
+            document.getElementById('currentTime').textContent = 
+                timeDescriptions[gameState.currentRoom] || '未知の時空間';
+        }
+
+        function checkCompletionCondition() {
+            // 事務室を訪問済みの場合、完了ボタンを有効化
+            if (gameState.visitedRooms.includes('office')) {
+                document.getElementById('completeButton').disabled = false;
+                document.getElementById('completeButton').style.background = '#2ed573';
+            }
+        }
+
+        function triggerTimeEffect() {
+            const effect = document.getElementById('timeEffect');
+            effect.classList.add('active');
+            setTimeout(() => {
+                effect.classList.remove('active');
+            }, 500);
+        }
+
+        function simulateRefresh() {
+            // F5キーと同じ効果をシミュレート
+            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
+            location.reload();
+        }
+
+        function wrongCode() {
+            alert('⚠️ 間違ったコード！タイムループが強制リセットされます！');
+            simulateRefresh();
+        }
+
+        function saveGameState() {
+            sessionStorage.setItem('visitedRooms', JSON.stringify(gameState.visitedRooms));
+        }
+
+        let countdown = 30;
+        function startCountdown() {
+            setInterval(() => {
+                const countdownEl = document.getElementById('countdown');
+                if (countdownEl && countdown > 0) {
+                    countdownEl.textContent = countdown;
+                    countdown--;
+                    
+                    if (countdown <= 0) {
+                        if (gameState.currentRoom === 'lab') {
+                            alert('時間切れ！ループがリセットされます！');
+                            simulateRefresh();
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        // ブラウザの戻るボタンで部屋を戻る
+        window.addEventListener('popstate', function(event) {
+            if (event.state && event.state.room) {
+                const roomId = event.state.room;
+                document.querySelectorAll('.room').forEach(room => {
+                    room.style.display = 'none';
+                });
+                document.getElementById(roomId).style.display = 'block';
+                gameState.currentRoom = roomId;
+                updateTimeIndicator();
+                triggerTimeEffect();
+            }
+        });
+
+        // F5キーでリフレッシュを検知
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.setItem('timeLoopCount', gameState.loopCount.toString());
+        });
+
+        // キーボードショートカット
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F5') {
+                // F5が押された時の特別な処理（必要に応じて）
+                console.log('F5が押されました - ループリセット');
+            }
+        });
+    </script>
+</body>
+</html>
